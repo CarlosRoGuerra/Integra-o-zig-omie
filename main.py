@@ -4,43 +4,48 @@ import xml.etree.ElementTree as ET
 import requests
 import logging
 import hashlib
+import html
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from apscheduler.schedulers.blocking import BlockingScheduler
 from contextlib import contextmanager
 import threading
 import openpyxl
+import time
 from openpyxl.styles import Font, Alignment
 from datetime import datetime
 
 # Carrega variáveis de ambiente do .env
 load_dotenv()
 
+class StoreConfig:
+    def __init__(self, name, zig_token, zig_rede, omie_app_key, omie_app_secret,cc):
+        self.name = name
+        self.zig_token = zig_token
+        self.zig_rede = zig_rede
+        self.omie_app_key = omie_app_key
+        self.omie_app_secret = omie_app_secret
+        self.cc= cc
 class Config:
     def __init__(self):
-        self.zig_token = os.getenv('ZIG_TOKEN')
-        self.zig_rede = os.getenv('ZIG_REDE')
-        self.zig_rede2 = os.getenv('ZIG_REDE2')
-        self.omie_app_key = os.getenv('OMIE_APP_KEY')
-        self.omie_app_secret = os.getenv('OMIE_APP_SECRET')
-
-class NFeProc:
-    def __init__(self, xml_data):
-        self.root = ET.fromstring(xml_data)
-        self.inf_nfe = self.root.find(".//infNFe")
-        self.id = self.inf_nfe.attrib['Id']
-        self.ide = self.inf_nfe.find("ide")
-        self.det = self.inf_nfe.findall("det")
-        self.total = self.inf_nfe.find("total/ICMSTot")
-        self.emit = self.inf_nfe.find("emit")
-        self.nfce = None
-
-class SimplifiedInvoice:
-    def __init__(self, nf_number, product_name, value, impostos):
-        self.nf_number = nf_number
-        self.product_name = product_name
-        self.value = value
-        self.impostos = impostos
+        self.stores = {
+            'otro': StoreConfig(
+                'otro',
+                os.getenv('ZIG_TOKEN-OTRO'),
+                os.getenv('ZIG_REDE-OTRO'),
+                os.getenv('OMIE_APP_KEY-OTRO'),
+                os.getenv('OMIE_APP_SECRET-OTRO'),
+                os.getenv('CC-OTRO')
+            ) ,
+            'tratto': StoreConfig(
+                'tratto',
+                os.getenv('ZIG_TOKEN-TRATTO'),
+                os.getenv('ZIG_REDE-TRATTO'),
+                os.getenv('OMIE_APP_KEY-TRATTO'),
+                os.getenv('OMIE_APP_SECRET-TRATTO'),
+                os.getenv('CC-TRATTO')
+            )
+        }
 
 config = Config()
 scheduler = BlockingScheduler()
@@ -58,20 +63,19 @@ def timeout(duration):
     finally:
         timer.cancel()
 
-def fetch_invoices(from_date, to_date, page):
+def fetch_invoices(store_config, from_date, to_date, page):
     headers = {
-        "Authorization": config.zig_token,
+        "Authorization": store_config.zig_token,
     }
     params = {
-        #"dtinicio": from_date.strftime('%Y-%m-%d'),
-        #"dtfim": to_date.strftime('%Y-%m-%d'),
-        "dtinicio": from_date.strftime('2024-10-13'),
-        "dtfim": to_date.strftime('2024-10-15'),
-        "loja": config.zig_rede2,
+        "dtinicio": from_date.strftime('%Y-%m-%d'),
+        "dtfim": to_date.strftime('%Y-%m-%d'),
+        #"dtinicio": from_date.strftime('2024-12-02'),
+        #"dtfim": to_date.strftime('2024-10-23'),
+        "loja": store_config.zig_rede,
         "page": str(page)
     }
     response = requests.get("https://api.zigcore.com.br/integration/erp/invoice?", headers=headers, params=params)
-    
     if response.status_code != 200:
         raise Exception(f"Unexpected status: {response.status_code}")
     
@@ -165,7 +169,8 @@ def convert_xml_to_json(xml_string):
     return json.dumps(_xml_to_dict(root), indent=2)
 
 def convert_xml_to_omie_json(xml_data):
-    nfe_json, nfe_data = parse_nfe_xml(xml_data)   
+    nfe_json, nfe_data = parse_nfe_xml(xml_data)
+    nome_transformado = nfe_data['emit']['xFant'].replace("COMERCIO DE ", "").replace(" LTDA", "")
     omie_json = {
         "NFe": {
             "chNFe": nfe_data['Id'][3:] if nfe_data.get('Id') else "",
@@ -199,7 +204,7 @@ def convert_xml_to_omie_json(xml_data):
         },
         "emissor": {
             "emiId": 6029653,
-            "emiNome": nfe_data['emit']['xFant'],
+            "emiNome": nome_transformado,
             "emiSerial": "",  # You'll need to provide this information
             "emiVersao": nfe_data['ide']['verProc']
         },
@@ -213,22 +218,23 @@ def convert_xml_to_omie_json(xml_data):
             "lNaoGerarTitulo":False,
             "pag": {
                 "pTaxa": 0,
-                "vLiq": nfe_data['total']['vTotTrib'],
-                "vPag": nfe_data['total']['vTotTrib'],
+                "vLiq": nfe_data['total']['vNF'],  # Corrigido para o valor total correto
+                "vPag": nfe_data['total']['vNF'],  # Certifique-se que o valor está correto
                 "vTaxa": 0,
                 "vTroco": 0
             },
             "pagIdent": {
-                "cCategoria": "1.01.03",
-                "cTipoPag": "99999",
-                "idConta": 6758280882
+                "cCategoria": " 1.01.03",
+                "cTipoPag": "DIN",
+                #"idConta":  7502625278
+                "idConta": 0
             },
             "seqPag": 1
             }],  # You'll need to provide this information
         "nfce": {
             "nfceMd5": hashlib.md5(xml_data.encode()).hexdigest(),
             "nfceProt": nfe_data['nProt'],  # You'll need to provide this information
-            "nfceXml": xml_data,
+            "nfceXml": html.unescape(xml_data),
         }
     }
     
@@ -260,19 +266,24 @@ def convert_xml_to_omie_json(xml_data):
         omie_json["NFe"]["det"].append(det_item)    
     return omie_json
 
-def build_omie_json(invoice):
+def build_omie_json(store_name, invoice):
     omie_json = convert_xml_to_omie_json(invoice["xml"])
-    root = ET.fromstring(invoice["xml"])
-    nfce_element = root.find('nfce')
-    if nfce_element is not None:
-        nfce_content = nfce_element.text.strip()
-    # Add payment information
-    #omie_json["formasPag"] = invoice["formasPag"]
     
+    # Adiciona informações específicas da loja
     omie_json["caixa"]["seqCaixa"] = get_next_sequencial('seqCaixa')
     omie_json["caixa"]["seqCupom"] = get_next_sequencial('seqCupom')
-    omie_json["cupomIdent"]["idCliente"] = invoice.get("idCliente", '675944858')
+    
+    # Define ID do cliente específico para cada loja
+    if store_name == 'otro':
+        omie_json["cupomIdent"]["idCliente"] = '675944858'
+        omie_json["formasPag"][0]["pagIdent"]["idConta"] = 3569457062
+    elif store_name == 'tratto':
+        omie_json["cupomIdent"]["idCliente"] = '675944859'  # Ajuste este valor conforme necessário
+        omie_json["formasPag"][0]["pagIdent"]["idConta"] = 7502625278
+
     omie_json["emissor"]["emiSerial"] = invoice.get("emiSerial", 1)
+    
+    return omie_json
     #omie_json["nfce"]["nfceProt"] = nfe_data['nProt']
     
     return omie_json
@@ -291,21 +302,59 @@ def create_json_from_omie_json(omie_json, filename=None):
         json.dump(json_data, f, ensure_ascii=False, indent=4)
     
     return filename
-def process_omie_invoice(omie_json):
+def process_omie_invoice(store_config, omie_json):
+    time.sleep(300)
+    md5_value = omie_json["nfce"]["nfceMd5"]
+    file_name = "processed_nfce_md5.txt"
+
+    # Carregar valores existentes do arquivo
+    try:
+        with open(file_name, "r") as f:
+            processed_md5 = set(f.read().splitlines())
+    except FileNotFoundError:
+        processed_md5 = set()
+
+    # Verificar se o valor já foi processado
+    if md5_value in processed_md5:
+        logging.info(f"[{store_config.name}] NF-e já processada (MD5: {md5_value}). Pulando...")
+        print(f"[{store_config.name}] NF-e já processada (MD5: {md5_value}). Pulando...")
+        return
+
+    # Fazer a requisição
     url = "https://app.omie.com.br/api/v1/produtos/cupomfiscalincluir/"
     headers = {"Content-Type": "application/json"}
     body = {
         "call": "IncluirNfce",
-        "app_key": config.omie_app_key,
-        "app_secret": config.omie_app_secret,
+        "app_key": store_config.omie_app_key,
+        "app_secret": store_config.omie_app_secret,
         "param": [omie_json]
     }
-    response = requests.post(url, headers=headers, json=body)
-    logging.info(f"JSON sendo enviado ao Omie: {json.dumps(omie_json, indent=2)}")
-    if response.status_code != 200:
-        raise Exception(f"Unexpected status: {response.status_code}")
-    
-    logging.info(f"Nota fiscal enviada com sucesso: {response.text}")
+
+    try:
+        response = requests.post(url, headers=headers, json=body)
+        response_data = response.json()
+
+        if "faultcode" in response_data:
+            if response_data["faultcode"] == "SOAP-ENV:Client-3333":
+                logging.info(f"[{store_config.name}] Cupom duplicado: {response_data['faultstring']}. Continuando...")
+                print(f"[{store_config.name}] Cupom duplicado: {response_data['faultstring']}. Continuando...")
+                return
+            raise Exception(f"Erro ao processar nota: {response_data['faultstring']}")
+
+        if response.status_code != 200:
+            logging.error(f"Unexpected status: {response.status_code}")
+            raise Exception(f"Erro ao enviar nota: {response.text}")
+
+        # Salvar MD5 no arquivo após sucesso
+        with open(file_name, "a") as f:
+            f.write(md5_value + "\n")
+
+        logging.info(f"[{store_config.name}] Nota fiscal enviada com sucesso: {response.text}")
+        print(f"[{store_config.name}] Nota fiscal enviada com sucesso: {response.text}")
+
+    except Exception as e:
+        logging.error(f"[{store_config.name}] Erro ao enviar nota: {str(e)}")
+        print(f"[{store_config.name}] Erro ao enviar nota: {str(e)}")
 
 def execute_zig_omie_integration():
     logging.info("Iniciando integração...")
@@ -314,7 +363,7 @@ def execute_zig_omie_integration():
     last_run = now - timedelta(days=1)
 
     try:
-        with timeout(240):  # Timeout de 4 minutos
+        with timeout(900):  # Timeout de 4 minutos
             invoices = fetch_invoices(last_run, now, 1)
             for invoice in invoices:
                 omie_json = build_omie_json(invoice)
@@ -491,7 +540,37 @@ def get_next_sequencial(tipo):
         json.dump(data, f)
 
     return next_seq
+def execute_store_integration(store_name):
+    store_config = config.stores[store_name]
+    logging.info(f"Iniciando integração para loja {store_name}...")
+    
+    now = datetime.now()
+    last_run = now - timedelta(days=1)
+
+    try:
+        with timeout(900):  # Timeout de 4 minutos
+            invoices = fetch_invoices(store_config, last_run, now, 1)
+            for invoice in invoices:
+                omie_json = build_omie_json(store_name, invoice)
+                process_omie_invoice(store_config, omie_json)
+    except TimeoutError:
+        logging.error(f"[{store_name}] O tempo limite foi atingido.")
+    except Exception as e:
+        logging.error(f"[{store_name}] Erro na integração: {e}")
+        print(f"[{store_name}] Erro na integração: {e}")
+    logging.info(f"[{store_name}] Processamento concluído.")
+def execute_all_integrations():
+    for store_name in config.stores:
+        execute_store_integration(store_name)
 
 if __name__ == "__main__":
-    scheduler.add_job(execute_zig_omie_integration, 'interval', seconds=10)
+    # Configurar logging para cada loja
+    for store_name in config.stores:
+        logging.basicConfig(
+            filename=f'integration_{store_name}.log',
+            level=logging.INFO,
+            format=f'%(asctime)s [%(levelname)s] [{store_name}] %(message)s'
+        )
+    
+    scheduler.add_job(execute_all_integrations, 'interval', seconds=21600)
     scheduler.start()
