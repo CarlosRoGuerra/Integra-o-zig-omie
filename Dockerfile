@@ -11,8 +11,7 @@ COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Certifique-se de que o .env será reconhecido no contêiner
-# O python-dotenv carrega automaticamente o .env do diretório atual
-ENV PYTHONUNBUFFERED=1  # Para evitar buffering em logs
+ENV PYTHONUNBUFFERED=1
 
 # Comando para executar o script
 CMD ["python", "integracao.py"]
