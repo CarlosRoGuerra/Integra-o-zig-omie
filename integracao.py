@@ -572,5 +572,10 @@ if __name__ == "__main__":
             format=f'%(asctime)s [%(levelname)s] [{store_name}] %(message)s'
         )
     
+    # Executa a integração imediatamente
+    logging.info("Executando integração imediatamente...")
+    execute_all_integrations()
+
+    # Agenda a execução periódica
     scheduler.add_job(execute_all_integrations, 'interval', seconds=21600)
     scheduler.start()
