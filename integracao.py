@@ -318,7 +318,7 @@ def process_omie_invoice(store_config, omie_json):
         logging.info(f"[{store_config.name}] NF-e já processada (MD5: {md5_value}). Pulando...")
         print(f"[{store_config.name}] NF-e já processada (MD5: {md5_value}). Pulando...")
         return
-    time.sleep(120)
+    time.sleep(180)
     # Fazer a requisição
     url = "https://app.omie.com.br/api/v1/produtos/cupomfiscalincluir/"
     headers = {"Content-Type": "application/json"}
@@ -576,5 +576,5 @@ if __name__ == "__main__":
     execute_all_integrations()
 
     # Agenda a execução periódica
-    scheduler.add_job(execute_all_integrations, 'interval', seconds=21600)
+    scheduler.add_job(execute_all_integrations, 'interval', seconds=28800)
     scheduler.start()
