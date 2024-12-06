@@ -303,7 +303,6 @@ def create_json_from_omie_json(omie_json, filename=None):
     
     return filename
 def process_omie_invoice(store_config, omie_json):
-    time.sleep(300)
     md5_value = omie_json["nfce"]["nfceMd5"]
     file_name = "processed_nfce_md5.txt"
 
@@ -319,7 +318,7 @@ def process_omie_invoice(store_config, omie_json):
         logging.info(f"[{store_config.name}] NF-e já processada (MD5: {md5_value}). Pulando...")
         print(f"[{store_config.name}] NF-e já processada (MD5: {md5_value}). Pulando...")
         return
-
+    time.sleep(300)
     # Fazer a requisição
     url = "https://app.omie.com.br/api/v1/produtos/cupomfiscalincluir/"
     headers = {"Content-Type": "application/json"}
