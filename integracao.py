@@ -485,28 +485,34 @@ def parse_nfe_xml(xml_data):
         total = inf_nfe.find('nfe:total', ns)
         if total is not None:
             icms_tot = total.find('nfe:ICMSTot', ns)
-            nfe_data['total'] = {
-                'vBC': icms_tot.find('nfe:vBC', ns).text,
-                'vICMS': icms_tot.find('nfe:vICMS', ns).text,
-                'vICMSDeson': icms_tot.find('nfe:vICMSDeson', ns).text,
-                'vFCP': icms_tot.find('nfe:vFCP', ns).text,
-                'vBCST': icms_tot.find('nfe:vBCST', ns).text,
-                'vST': icms_tot.find('nfe:vST', ns).text,
-                'vFCPST': icms_tot.find('nfe:vFCPST', ns).text,
-                'vFCPSTRet': icms_tot.find('nfe:vFCPSTRet', ns).text,
-                'vProd': icms_tot.find('nfe:vProd', ns).text,
-                'vFrete': icms_tot.find('nfe:vFrete', ns).text,
-                'vSeg': icms_tot.find('nfe:vSeg', ns).text,
-                'vDesc': icms_tot.find('nfe:vDesc', ns).text,
-                'vII': icms_tot.find('nfe:vII', ns).text,
-                'vIPI': icms_tot.find('nfe:vIPI', ns).text,
-                'vIPIDevol': icms_tot.find('nfe:vIPIDevol', ns).text,
-                'vPIS': icms_tot.find('nfe:vPIS', ns).text,
-                'vCOFINS': icms_tot.find('nfe:vCOFINS', ns).text,
-                'vOutro': icms_tot.find('nfe:vOutro', ns).text,
-                'vNF': icms_tot.find('nfe:vNF', ns).text,
-                'vTotTrib': icms_tot.find('nfe:vTotTrib', ns).text
-            }
+            if icms_tot is not None:
+                def safe_text(element, tag):
+                    found = element.find(tag, ns)
+                    return found.text if found is not None else None
+
+                nfe_data['total'] = {
+                    'vBC': safe_text(icms_tot, 'nfe:vBC'),
+                    'vICMS': safe_text(icms_tot, 'nfe:vICMS'),
+                    'vICMSDeson': safe_text(icms_tot, 'nfe:vICMSDeson'),
+                    'vFCP': safe_text(icms_tot, 'nfe:vFCP'),
+                    'vBCST': safe_text(icms_tot, 'nfe:vBCST'),
+                    'vST': safe_text(icms_tot, 'nfe:vST'),
+                    'vFCPST': safe_text(icms_tot, 'nfe:vFCPST'),
+                    'vFCPSTRet': safe_text(icms_tot, 'nfe:vFCPSTRet'),
+                    'vProd': safe_text(icms_tot, 'nfe:vProd'),
+                    'vFrete': safe_text(icms_tot, 'nfe:vFrete'),
+                    'vSeg': safe_text(icms_tot, 'nfe:vSeg'),
+                    'vDesc': safe_text(icms_tot, 'nfe:vDesc'),
+                    'vII': safe_text(icms_tot, 'nfe:vII'),
+                    'vIPI': safe_text(icms_tot, 'nfe:vIPI'),
+                    'vIPIDevol': safe_text(icms_tot, 'nfe:vIPIDevol'),
+                    'vPIS': safe_text(icms_tot, 'nfe:vPIS'),
+                    'vCOFINS': safe_text(icms_tot, 'nfe:vCOFINS'),
+                    'vOutro': safe_text(icms_tot, 'nfe:vOutro'),
+                    'vNF': safe_text(icms_tot, 'nfe:vNF'),
+                    'vTotTrib': safe_text(icms_tot, 'nfe:vTotTrib')
+                }
+        # 'infProt' - Informações da NF-e
         prot_nfe = root.find('.//nfe:infProt', ns)
         if prot_nfe is not None:
             nfe_data['nProt'] = prot_nfe.find('nfe:nProt', ns).text if prot_nfe.find('nfe:nProt', ns) is not None else None
@@ -545,19 +551,23 @@ def execute_store_integration(store_name):
     
     now = datetime.now()
     last_run = now - timedelta(days=1)
-
     try:
         with timeout(900):  # Timeout de 4 minutos
             invoices = fetch_invoices(store_config, last_run, now, 1)
             for invoice in invoices:
                 omie_json = build_omie_json(store_name, invoice)
                 process_omie_invoice(store_config, omie_json)
+
+            logging.info(f"[{store_name}] Remessa de vendas finalizada. Aguardando a próxima remessa em algumas horas.")
+            print(f"[{store_name}] Remessa de vendas finalizada. Aguardando a próxima remessa em algumas horas.")
     except TimeoutError:
         logging.error(f"[{store_name}] O tempo limite foi atingido.")
     except Exception as e:
         logging.error(f"[{store_name}] Erro na integração: {e}")
         print(f"[{store_name}] Erro na integração: {e}")
-    logging.info(f"[{store_name}] Processamento concluído.")
+    finally:
+        logging.info(f"[{store_name}] Processamento concluído.")
+
 def execute_all_integrations():
     for store_name in config.stores:
         execute_store_integration(store_name)
@@ -576,5 +586,5 @@ if __name__ == "__main__":
     execute_all_integrations()
 
     # Agenda a execução periódica
-    scheduler.add_job(execute_all_integrations, 'interval', seconds=28800)
+    scheduler.add_job(execute_all_integrations, 'interval', seconds=21600)
     scheduler.start()
