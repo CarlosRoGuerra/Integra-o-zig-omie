@@ -373,9 +373,17 @@ def execute_zig_omie_integration():
         logging.error(f"Erro na integração: {e}")
 
     logging.info("Processamento concluído.")
+
 def parse_nfe_xml(xml_data):
     # Define o namespace
     ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe', 'ds': 'http://www.w3.org/2000/09/xmldsig#'}
+
+    # Função auxiliar para obter o texto de um elemento ou retornar None
+    def get_text_or_none(element, tag, ns):
+        if element is not None:
+            found = element.find(tag, ns)
+            return found.text if found is not None else None
+        return None
 
     # Carrega o XML
     root = ET.fromstring(xml_data)
@@ -395,26 +403,26 @@ def parse_nfe_xml(xml_data):
         ide = inf_nfe.find('nfe:ide', ns)
         if ide is not None:
             nfe_data['ide'] = {
-                'cUF': ide.find('nfe:cUF', ns).text,
-                'cNF': ide.find('nfe:cNF', ns).text,
-                'natOp': ide.find('nfe:natOp', ns).text,
-                'mod': ide.find('nfe:mod', ns).text,
-                'serie': ide.find('nfe:serie', ns).text,
-                'nNF': ide.find('nfe:nNF', ns).text,
-                'dhEmi': ide.find('nfe:dhEmi', ns).text,
-                'tpNF': ide.find('nfe:tpNF', ns).text,
-                'idDest': ide.find('nfe:idDest', ns).text,
-                'cMunFG': ide.find('nfe:cMunFG', ns).text,
-                'tpImp': ide.find('nfe:tpImp', ns).text,
-                'tpEmis': ide.find('nfe:tpEmis', ns).text,
-                'cDV': ide.find('nfe:cDV', ns).text,
-                'tpAmb': ide.find('nfe:tpAmb', ns).text,
-                'finNFe': ide.find('nfe:finNFe', ns).text,
-                'indFinal': ide.find('nfe:indFinal', ns).text,
-                'indPres': ide.find('nfe:indPres', ns).text,
-                'indIntermed': ide.find('nfe:indIntermed', ns).text,
-                'procEmi': ide.find('nfe:procEmi', ns).text,
-                'verProc': ide.find('nfe:verProc', ns).text
+                'cUF': get_text_or_none(ide, 'nfe:cUF', ns),
+                'cNF': get_text_or_none(ide, 'nfe:cNF', ns),
+                'natOp': get_text_or_none(ide, 'nfe:natOp', ns),
+                'mod': get_text_or_none(ide, 'nfe:mod', ns),
+                'serie': get_text_or_none(ide, 'nfe:serie', ns),
+                'nNF': get_text_or_none(ide, 'nfe:nNF', ns),
+                'dhEmi': get_text_or_none(ide, 'nfe:dhEmi', ns),
+                'tpNF': get_text_or_none(ide, 'nfe:tpNF', ns),
+                'idDest': get_text_or_none(ide, 'nfe:idDest', ns),
+                'cMunFG': get_text_or_none(ide, 'nfe:cMunFG', ns),
+                'tpImp': get_text_or_none(ide, 'nfe:tpImp', ns),
+                'tpEmis': get_text_or_none(ide, 'nfe:tpEmis', ns),
+                'cDV': get_text_or_none(ide, 'nfe:cDV', ns),
+                'tpAmb': get_text_or_none(ide, 'nfe:tpAmb', ns),
+                'finNFe': get_text_or_none(ide, 'nfe:finNFe', ns),
+                'indFinal': get_text_or_none(ide, 'nfe:indFinal', ns),
+                'indPres': get_text_or_none(ide, 'nfe:indPres', ns),
+                'indIntermed': get_text_or_none(ide, 'nfe:indIntermed', ns),
+                'procEmi': get_text_or_none(ide, 'nfe:procEmi', ns),
+                'verProc': get_text_or_none(ide, 'nfe:verProc', ns)
             }
 
         # 'emit' - Emitente
@@ -422,22 +430,22 @@ def parse_nfe_xml(xml_data):
         if emit is not None:
             enderEmit = emit.find('nfe:enderEmit', ns)
             nfe_data['emit'] = {
-                'CNPJ': emit.find('nfe:CNPJ', ns).text,
-                'xNome': emit.find('nfe:xNome', ns).text,
-                'xFant': emit.find('nfe:xFant', ns).text,
-                'IE': emit.find('nfe:IE', ns).text,
-                'CRT': emit.find('nfe:CRT', ns).text,
+                'CNPJ': get_text_or_none(emit, 'nfe:CNPJ', ns),
+                'xNome': get_text_or_none(emit, 'nfe:xNome', ns),
+                'xFant': get_text_or_none(emit, 'nfe:xFant', ns),
+                'IE': get_text_or_none(emit, 'nfe:IE', ns),
+                'CRT': get_text_or_none(emit, 'nfe:CRT', ns),
                 'enderEmit': {
-                    'xLgr': enderEmit.find('nfe:xLgr', ns).text,
-                    'nro': enderEmit.find('nfe:nro', ns).text,
-                    'xBairro': enderEmit.find('nfe:xBairro', ns).text,
-                    'cMun': enderEmit.find('nfe:cMun', ns).text,
-                    'xMun': enderEmit.find('nfe:xMun', ns).text,
-                    'UF': enderEmit.find('nfe:UF', ns).text,
-                    'CEP': enderEmit.find('nfe:CEP', ns).text,
-                    'cPais': enderEmit.find('nfe:cPais', ns).text,
-                    'xPais': enderEmit.find('nfe:xPais', ns).text,
-                    'fone': enderEmit.find('nfe:fone', ns).text
+                    'xLgr': get_text_or_none(enderEmit, 'nfe:xLgr', ns),
+                    'nro': get_text_or_none(enderEmit, 'nfe:nro', ns),
+                    'xBairro': get_text_or_none(enderEmit, 'nfe:xBairro', ns),
+                    'cMun': get_text_or_none(enderEmit, 'nfe:cMun', ns),
+                    'xMun': get_text_or_none(enderEmit, 'nfe:xMun', ns),
+                    'UF': get_text_or_none(enderEmit, 'nfe:UF', ns),
+                    'CEP': get_text_or_none(enderEmit, 'nfe:CEP', ns),
+                    'cPais': get_text_or_none(enderEmit, 'nfe:cPais', ns),
+                    'xPais': get_text_or_none(enderEmit, 'nfe:xPais', ns),
+                    'fone': get_text_or_none(enderEmit, 'nfe:fone', ns)
                 }
             }
 
@@ -445,9 +453,9 @@ def parse_nfe_xml(xml_data):
         dest = inf_nfe.find('nfe:dest', ns)
         if dest is not None:
             nfe_data['dest'] = {
-                'CPF': dest.find('nfe:CPF', ns).text,
-                'xNome': dest.find('nfe:xNome', ns).text,
-                'indIEDest': dest.find('nfe:indIEDest', ns).text
+                'CPF': get_text_or_none(dest, 'nfe:CPF', ns),
+                'xNome': get_text_or_none(dest, 'nfe:xNome', ns),
+                'indIEDest': get_text_or_none(dest, 'nfe:indIEDest', ns)
             }
 
         # 'det' - Detalhes dos produtos/serviços
@@ -458,24 +466,23 @@ def parse_nfe_xml(xml_data):
             det_item = {
                 'nItem': det.attrib.get('nItem'),
                 'prod': {
-                    'cProd': prod.find('nfe:cProd', ns).text,
-                    'cEAN': prod.find('nfe:cEAN', ns).text,
-                    'xProd': prod.find('nfe:xProd', ns).text,
-                    'NCM': prod.find('nfe:NCM', ns).text,
-                    'CFOP': prod.find('nfe:CFOP', ns).text,
-                    'uCom': prod.find('nfe:uCom', ns).text,
-                    'qCom': prod.find('nfe:qCom', ns).text,
-                    'vUnCom': prod.find('nfe:vUnCom', ns).text,
-                    'vProd': prod.find('nfe:vProd', ns).text,
-                    'cEANTrib': prod.find('nfe:cEANTrib', ns).text,
-                    'uTrib': prod.find('nfe:uTrib', ns).text,
-                    'qTrib': prod.find('nfe:qTrib', ns).text,
-                    'vUnTrib': prod.find('nfe:vUnTrib', ns).text,
-                    'indTot': prod.find('nfe:indTot', ns).text
+                    'cProd': get_text_or_none(prod, 'nfe:cProd', ns),
+                    'cEAN': get_text_or_none(prod, 'nfe:cEAN', ns),
+                    'xProd': get_text_or_none(prod, 'nfe:xProd', ns),
+                    'NCM': get_text_or_none(prod, 'nfe:NCM', ns),
+                    'CFOP': get_text_or_none(prod, 'nfe:CFOP', ns),
+                    'uCom': get_text_or_none(prod, 'nfe:uCom', ns),
+                    'qCom': get_text_or_none(prod, 'nfe:qCom', ns),
+                    'vUnCom': get_text_or_none(prod, 'nfe:vUnCom', ns),
+                    'vProd': get_text_or_none(prod, 'nfe:vProd', ns),
+                    'cEANTrib': get_text_or_none(prod, 'nfe:cEANTrib', ns),
+                    'uTrib': get_text_or_none(prod, 'nfe:uTrib', ns),
+                    'qTrib': get_text_or_none(prod, 'nfe:qTrib', ns),
+                    'vUnTrib': get_text_or_none(prod, 'nfe:vUnTrib', ns),
+                    'indTot': get_text_or_none(prod, 'nfe:indTot', ns)
                 },
                 'imposto': {
-                    'vTotTrib': imposto.find('nfe:vTotTrib', ns).text if imposto.find('nfe:vTotTrib', ns) is not None else None,
-                    # Aqui você pode adicionar mais detalhes do imposto se necessário
+                    'vTotTrib': get_text_or_none(imposto, 'nfe:vTotTrib', ns) if imposto is not None else None
                 }
             }
             det_list.append(det_item)
@@ -486,38 +493,33 @@ def parse_nfe_xml(xml_data):
         if total is not None:
             icms_tot = total.find('nfe:ICMSTot', ns)
             if icms_tot is not None:
-                def safe_text(element, tag):
-                    found = element.find(tag, ns)
-                    return found.text if found is not None else None
-
                 nfe_data['total'] = {
-                    'vBC': safe_text(icms_tot, 'nfe:vBC'),
-                    'vICMS': safe_text(icms_tot, 'nfe:vICMS'),
-                    'vICMSDeson': safe_text(icms_tot, 'nfe:vICMSDeson'),
-                    'vFCP': safe_text(icms_tot, 'nfe:vFCP'),
-                    'vBCST': safe_text(icms_tot, 'nfe:vBCST'),
-                    'vST': safe_text(icms_tot, 'nfe:vST'),
-                    'vFCPST': safe_text(icms_tot, 'nfe:vFCPST'),
-                    'vFCPSTRet': safe_text(icms_tot, 'nfe:vFCPSTRet'),
-                    'vProd': safe_text(icms_tot, 'nfe:vProd'),
-                    'vFrete': safe_text(icms_tot, 'nfe:vFrete'),
-                    'vSeg': safe_text(icms_tot, 'nfe:vSeg'),
-                    'vDesc': safe_text(icms_tot, 'nfe:vDesc'),
-                    'vII': safe_text(icms_tot, 'nfe:vII'),
-                    'vIPI': safe_text(icms_tot, 'nfe:vIPI'),
-                    'vIPIDevol': safe_text(icms_tot, 'nfe:vIPIDevol'),
-                    'vPIS': safe_text(icms_tot, 'nfe:vPIS'),
-                    'vCOFINS': safe_text(icms_tot, 'nfe:vCOFINS'),
-                    'vOutro': safe_text(icms_tot, 'nfe:vOutro'),
-                    'vNF': safe_text(icms_tot, 'nfe:vNF'),
-                    'vTotTrib': safe_text(icms_tot, 'nfe:vTotTrib')
+                    'vBC': get_text_or_none(icms_tot, 'nfe:vBC', ns),
+                    'vICMS': get_text_or_none(icms_tot, 'nfe:vICMS', ns),
+                    'vICMSDeson': get_text_or_none(icms_tot, 'nfe:vICMSDeson', ns),
+                    'vFCP': get_text_or_none(icms_tot, 'nfe:vFCP', ns),
+                    'vBCST': get_text_or_none(icms_tot, 'nfe:vBCST', ns),
+                    'vST': get_text_or_none(icms_tot, 'nfe:vST', ns),
+                    'vFCPST': get_text_or_none(icms_tot, 'nfe:vFCPST', ns),
+                    'vFCPSTRet': get_text_or_none(icms_tot, 'nfe:vFCPSTRet', ns),
+                    'vProd': get_text_or_none(icms_tot, 'nfe:vProd', ns),
+                    'vFrete': get_text_or_none(icms_tot, 'nfe:vFrete', ns),
+                    'vSeg': get_text_or_none(icms_tot, 'nfe:vSeg', ns),
+                    'vDesc': get_text_or_none(icms_tot, 'nfe:vDesc', ns),
+                    'vII': get_text_or_none(icms_tot, 'nfe:vII', ns),
+                    'vIPI': get_text_or_none(icms_tot, 'nfe:vIPI', ns),
+                    'vIPIDevol': get_text_or_none(icms_tot, 'nfe:vIPIDevol', ns),
+                    'vPIS': get_text_or_none(icms_tot, 'nfe:vPIS', ns),
+                    'vCOFINS': get_text_or_none(icms_tot, 'nfe:vCOFINS', ns),
+                    'vOutro': get_text_or_none(icms_tot, 'nfe:vOutro', ns),
+                    'vNF': get_text_or_none(icms_tot, 'nfe:vNF', ns),
+                    'vTotTrib': get_text_or_none(icms_tot, 'nfe:vTotTrib', ns)
                 }
-        # 'infProt' - Informações da NF-e
+
+        # 'infProt' - Protocolo de Autorização
         prot_nfe = root.find('.//nfe:infProt', ns)
         if prot_nfe is not None:
-            nfe_data['nProt'] = prot_nfe.find('nfe:nProt', ns).text if prot_nfe.find('nfe:nProt', ns) is not None else None
-
-        # Outros elementos podem ser adicionados conforme necessário
+            nfe_data['nProt'] = get_text_or_none(prot_nfe, 'nfe:nProt', ns)
 
     else:
         print("Elemento 'infNFe' não encontrado no XML.")
@@ -525,6 +527,7 @@ def parse_nfe_xml(xml_data):
     # Converte o dicionário para JSON
     nfe_json = json.dumps(nfe_data, indent=4, ensure_ascii=False)
     return nfe_json, nfe_data  # Retorna o JSON e o dicionário de dados
+    
 def get_next_sequencial(tipo):
     filename = 'sequenciais.json'
     today = datetime.now().strftime('%Y-%m-%d')
