@@ -193,7 +193,7 @@ def convert_xml_to_omie_json(xml_data):
             }
         },
         "caixa": {
-            "lCxAberto": True,
+            "lCxAberto": False,
             "seqCaixa": 0,  # You'll need to provide this information
             "seqCupom": 0  # You'll need to provide this information
         },
