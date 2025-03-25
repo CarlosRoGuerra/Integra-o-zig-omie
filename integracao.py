@@ -171,6 +171,7 @@ def convert_xml_to_json(xml_string):
 def convert_xml_to_omie_json(xml_data):
     nfe_json, nfe_data = parse_nfe_xml(xml_data)
     nome_transformado = nfe_data['emit']['xFant'].replace("COMERCIO DE ", "").replace(" LTDA", "")
+    xml_unescaped = html.unescape(xml_data)
     omie_json = {
         "NFe": {
             "chNFe": nfe_data['Id'][3:] if nfe_data.get('Id') else "",
@@ -232,9 +233,9 @@ def convert_xml_to_omie_json(xml_data):
             "seqPag": 1
             }],  # You'll need to provide this information
         "nfce": {
-            "nfceMd5": hashlib.md5(xml_data.encode()).hexdigest(),
-            "nfceProt": nfe_data['nProt'],  # You'll need to provide this information
-            "nfceXml": html.unescape(xml_data),
+            "nfceMd5": hashlib.md5(xml_unescaped.encode()).hexdigest(),
+            "nfceProt": nfe_data['nProt'],
+            "nfceXml": xml_unescaped,
         }
     }
     
