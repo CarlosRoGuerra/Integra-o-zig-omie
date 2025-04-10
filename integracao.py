@@ -212,6 +212,11 @@ def convert_xml_to_omie_json(xml_data):
         "formasPag": [
              {
             "Parcelas": [
+                {
+                "dVenc": datetime.strptime(nfe_data['ide']['dhEmi'], "%Y-%m-%dT%H:%M:%S%z").strftime("%d/%m/%Y"),    
+                "nParc": "001/001",
+                "vParc": nfe_data['total']['vNF']
+                }
             ],
             "TEF": {
             },
