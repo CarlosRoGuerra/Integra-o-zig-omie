@@ -226,7 +226,7 @@ def convert_xml_to_omie_json(xml_data):
             },
             "pagIdent": {
                 "cCategoria": " 1.01.03",
-                "cTipoPag": "DIN",
+                "cTipoPag": nfe_data['pag']['tPag'],
                 #"idConta":  7502625278
                 "idConta": 0
             },
@@ -402,6 +402,7 @@ def parse_nfe_xml(xml_data):
 
         # 'ide' - Identificação da NF-e
         ide = inf_nfe.find('nfe:ide', ns)
+        pag = inf_nfe.find('nfe:pag', ns)
         if ide is not None:
             nfe_data['ide'] = {
                 'cUF': get_text_or_none(ide, 'nfe:cUF', ns),
@@ -450,6 +451,39 @@ def parse_nfe_xml(xml_data):
                 }
             }
 
+        if pag is not None:
+            detPag = pag.find('nfe:detPag', ns)
+            if detPag is not None:
+                tPag_elem = detPag.find('nfe:tPag', ns)
+                # Se não estiver preenchido, assume "99999"
+                tPag_value = tPag_elem.text.strip() if tPag_elem is not None and tPag_elem.text.strip() != '' else "99999"
+                
+                # Mapeamento dos códigos TPag (exemplo, ajuste conforme a especificação)
+                # Os códigos numéricos do XML são mapeados para as opções definidas:
+                tpag_mapping = {
+                    "01": "DIN",    # Dinheiro
+                    "02": "CHQ",    # Cheque
+                    "03": "CRC",    # Cartão de Crédito
+                    "04": "CRD",    # Cartão de Débito
+                    "05": "CRE",    # Crediário
+                    "15": "BOL",    # Boleto (código hipotético)
+                    "16": "PIX",    # Pix (código hipotético)
+                    "99": "99999"   # Outros
+                    # Outros códigos podem ser adicionados aqui se necessário
+                }
+                
+                # Caso o código não esteja mapeado, define como "99999"
+                pagamento = tpag_mapping.get(tPag_value, "99999")
+                
+                # Extrai também o valor do pagamento (se necessário para validações financeiras)
+                vPag_elem = detPag.find('nfe:vPag', ns)
+                valor_pagamento = vPag_elem.text if vPag_elem is not None else None
+                
+                # Armazena no dicionário principal
+                nfe_data['pag'] = {
+                    'tPag': pagamento,
+                    'vPag': valor_pagamento
+                }
         # 'dest' - Destinatário
         dest = inf_nfe.find('nfe:dest', ns)
         if dest is not None:
@@ -458,7 +492,7 @@ def parse_nfe_xml(xml_data):
                 'xNome': get_text_or_none(dest, 'nfe:xNome', ns),
                 'indIEDest': get_text_or_none(dest, 'nfe:indIEDest', ns)
             }
-
+        
         # 'det' - Detalhes dos produtos/serviços
         det_list = []
         for det in inf_nfe.findall('nfe:det', ns):
